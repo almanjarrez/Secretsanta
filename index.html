@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🎄 Intercambio Navideño Pepee!nk</title>
+
+    <!-- React + Tailwind -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <style>
+      body{
+        min-height:100vh; overflow-x:hidden; color:#fff;
+        background:
+          radial-gradient(1200px 600px at 10% -20%, #ffefef 0%, transparent 60%),
+          radial-gradient(1200px 600px at 90% -10%, #e8fff0 0%, transparent 60%),
+          linear-gradient(#0b1220, #0c1b2a 40%, #0c1925 100%);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      }
+      .lights{position:fixed; inset:0 0 auto 0; height:80px; pointer-events:none; opacity:.85;
+        background:
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 5% 50%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 15% 40%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 25% 60%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 35% 45%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 45% 55%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 55% 42%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 65% 58%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 75% 40%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 85% 60%/40px 40px no-repeat,
+          radial-gradient(6px 6px at 50% 50%, #fff, transparent) 95% 50%/40px 40px no-repeat;
+        animation: twinkle 2.6s infinite ease-in-out alternate;
+      }
+      @keyframes twinkle{0%{filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 8px #ff3)}100%{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 14px #f66)}}
+      .snowflake{position:fixed; top:-10px; color:#fff; opacity:.9; pointer-events:none; animation:fall linear infinite; filter:drop-shadow(0 0 2px rgba(255,255,255,.8))}
+      @keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+      .logo-wrap{display:grid; place-items:center; margin-top:96px}
+      .logo{width:240px; max-width:70vw; border-radius:20px; box-shadow:0 12px 32px rgba(0,0,0,.35); animation:breathe 3.6s ease-in-out infinite}
+      @keyframes breathe{0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-4px) scale(1.01)}}
+      .glass{backdrop-filter:blur(8px); background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15)}
+      #music-btn{position:fixed; bottom:20px; right:20px; width:60px; height:60px; border:none; border-radius:50%; background:rgba(255,255,255,.9); font-size:24px; box-shadow:0 4px 10px rgba(0,0,0,.35); cursor:pointer}
+      #errorBox{position:fixed; left:12px; bottom:12px; background:#111827; color:#fca5a5; padding:10px 12px; border-radius:12px; font-size:12px; max-width:90vw; z-index:9999; display:none}
+    </style>
+  </head>
+  <body class="p-6">
+    <div class="lights"></div>
+    <div id="snow"></div>
+
+    <div class="logo-wrap">
+      <img src="pepe.png" class="logo" alt="Pepee!nk Navidad"/>
+    </div>
+
+    <div id="root" class="p-2 sm:p-6"></div>
+
+    <audio id="bg-music" src="music.mp3" preload="auto" loop></audio>
+    <button id="music-btn" title="Música">🔔</button>
+
+    <!-- Caja de errores rápida -->
+    <div id="errorBox"></div>
+    <script>
+      window.addEventListener('error', (e)=>{
+        const box=document.getElementById('errorBox');
+        box.style.display='block';
+        box.textContent='Error: '+(e.message||'ver consola');
+        console.error(e.error||e.message);
+      });
+    </script>
+
+    <script type="text/babel">
+      // ===== Nieve =====
+      (function Snow(){
+        const root=document.getElementById('snow');
+        for(let i=0;i<60;i++){
+          const s=document.createElement('div');
+          s.className='snowflake';
+          s.textContent=Math.random()<.5?'❄':'❅';
+          s.style.left=(Math.random()*100)+'vw';
+          s.style.fontSize=(10+Math.random()*20)+'px';
+          s.style.animationDuration=(8+Math.random()*12)+'s';
+          s.style.animationDelay=(Math.random()*8)+'s';
+          root.appendChild(s);
+        }
+      })();
+
+      // ===== Música (autoplay al primer gesto) =====
+      (function Music(){
+        const audio=document.getElementById('bg-music');
+        const btn=document.getElementById('music-btn');
+        audio.volume=.7;
+        let playing=false;
+        const unlock=()=>{
+          audio.play().then(()=>{btn.textContent='🔕'; playing=true;})
+                       .catch(()=>{btn.textContent='🔔';});
+          window.removeEventListener('click',unlock);
+          window.removeEventListener('keydown',unlock);
+          window.removeEventListener('touchstart',unlock);
+        };
+        window.addEventListener('click',unlock,{once:true});
+        window.addEventListener('keydown',unlock,{once:true});
+        window.addEventListener('touchstart',unlock,{once:true});
+        btn.addEventListener('click', async ()=>{
+          try{
+            if(!playing){ await audio.play(); btn.textContent='🔕'; playing=true; }
+            else { audio.pause(); btn.textContent='🔔'; playing=false; }
+          }catch(e){ console.warn(e); }
+        });
+      })();
+
+      // ===== Firebase (según confirmaste) =====
+      const firebaseConfig = {
+        apiKey: "QgsLcJ74S0KuniYIg_k1NDEJZTxS5tvWfW66-IQHlNE",
+        authDomain: "secret-santa-a28c4.firebaseapp.com",
+        projectId: "secret-santa-a28c4",
+        storageBucket: "secret-santa-a28c4.appspot.com",
+        messagingSenderId: "17789642271",
+        appId: "1:17789642271:web:abc123def456"
+      };
+      try{
+        firebase.initializeApp(firebaseConfig);
+      }catch(e){
+        const box=document.getElementById('errorBox');
+        box.style.display='block';
+        box.textContent='Firebase init error: '+e.message;
+        throw e;
+      }
+      const db = firebase.firestore();
+
+      // ===== Utilidades sorteo =====
+      const PRELOADED = ["Jorge","Adriana","Valeria","Martha","Steve","Pato","Lucas","Julie","Irma"];
+      function shuffle(a){const arr=a.slice(); for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr;}
+      function hasFixed(a,b){return a.some((v,i)=>v===b[i]);}
+
+      // ===== React App =====
+      function App(){
+        const [tab,setTab]=React.useState('admin');
+        const [namesText,setNamesText]=React.useState(PRELOADED.join('\n'));
+        const [pairs,setPairs]=React.useState(null);
+        const [myName,setMyName]=React.useState('');
+        const [mine,setMine]=React.useState('');
+        const [msg,setMsg]=React.useState('');
+
+        const DOC_REF = db.collection('secret-santa').doc('pepeeink-evento');
+
+        React.useEffect(()=>{
+          (async()=>{
+            try{
+              const snap=await DOC_REF.get();
+              if(snap.exists){ const data=snap.data(); setPairs(data.pairs || data); }
+            }catch(e){
+              setMsg('No se pudo leer Firestore. Revisa reglas/conexión.');
+              console.error(e);
+            }
+          })();
+        },[]);
+
+        async function generate(){
+          setMsg('');
+          try{
+            const existing=await DOC_REF.get();
+            if(existing.exists){
+              const data=existing.data(); setPairs(data.pairs || data);
+              alert('Ya hay un sorteo guardado. Usaremos ese.'); return;
+            }
+            const raw=namesText.split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);
+            const seen=new Set(), names=[];
+            for(const n of raw){ const k=n.toLowerCase(); if(k && !seen.has(k)){seen.add(k); names.push(n);} }
+            if(names.length<2){ alert('Agrega al menos 2 nombres'); return; }
+            let sh, tries=0; do{ sh=shuffle(names); tries++; if(tries>600) break; } while(hasFixed(names, sh));
+            if(hasFixed(names, sh)){ alert('No se pudo generar. Intenta de nuevo.'); return; }
+            const map={}; for(let i=0;i<names.length;i++) map[names[i]]=sh[i];
+
+            await db.runTransaction(async tx=>{
+              const snap=await tx.get(DOC_REF);
+              if(snap.exists) return;
+              tx.set(DOC_REF, { pairs: map, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+
+            const finalSnap=await DOC_REF.get();
+            const data=finalSnap.data(); setPairs(data.pairs || data);
+            alert('🎁 Sorteo generado y guardado para todos.');
+          }catch(e){
+            setMsg('Error al guardar en Firestore (revisa reglas).');
+            console.error(e);
+          }
+        }
+
+        async function lookup(){
+          setMsg('');
+          try{
+            const snap=await DOC_REF.get();
+            if(!snap.exists){ setMine(''); setMsg('Aún no hay sorteo guardado.'); return; }
+            const data=snap.data(); const map=data.pairs || data;
+            const got=map[myName.trim()];
+            if(!got){ setMine(''); setMsg('Nombre no encontrado (revisa mayúsculas).'); return; }
+            setMine(got);
+          }catch(e){
+            setMsg('No se pudo leer Firestore.');
+            console.error(e);
+          }
+        }
+
+        return (
+          <div className="max-w-4xl mx-auto">
+            <div className="glass rounded-3xl px-6 py-5 mb-6 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Intercambio Navideño</h1>
+                  <p className="text-sm text-white/80 mt-1">Sorteo guardado en la nube — sin repeticiones ni auto-asignación.</p>
+                </div>
+                <div className="inline-flex bg-white/10 rounded-2xl p-1 border border-white/20">
+                  <button onClick={()=>setTab('admin')} className={`px-3 py-1.5 rounded-xl text-sm font-medium ${tab==='admin'?'bg-white text-gray-900':'text-white/90'}`}>Admin</button>
+                  <button onClick={()=>setTab('participante')} className={`px-3 py-1.5 rounded-xl text-sm font-medium ${tab==='participante'?'bg-white text-gray-900':'text-white/90'}`}>Participante</button>
+                </div>
+              </div>
+            </div>
+
+            {msg && <div className="max-w-4xl mx-auto mb-4 text-amber-300">{msg}</div>}
+
+            {tab==='admin' ? (
+              <section className="bg-white/95 rounded-3xl shadow-xl p-5 sm:p-6 text-gray-900">
+                <h2 className="text-xl font-bold">Panel de Admin 🎅</h2>
+                <p className="text-sm text-gray-600 mt-1">Pega los nombres (uno por línea o separados por comas). Duplicados se eliminan.</p>
+                <textarea value={namesText} onChange={e=>setNamesText(e.target.value)} className="w-full h-48 p-3 mt-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                <div className="mt-4 flex items-center gap-3">
+                  <button onClick={generate} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow">🎁 Generar y guardar</button>
+                  <span className="text-xs text-gray-500">El sorteo se guarda una sola vez y ya no se sobreescribe.</span>
+                </div>
+                {pairs && (
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm text-gray-700">Vista rápida</summary>
+                    <div className="overflow-x-auto mt-2">
+                      <table className="min-w-full text-sm">
+                        <thead><tr><th className="text-left p-2 border-b">Quien da</th><th className="text-left p-2 border-b">A quién le toca</th></tr></thead>
+                        <tbody>{Object.entries(pairs).map(([g,r])=>(
+                          <tr key={g}><td className="p-2 border-b">{g}</td><td className="p-2 border-b">{r}</td></tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+              </section>
+            ) : (
+              <section className="bg-white/95 rounded-3xl shadow-xl p-5 sm:p-6 text-gray-900">
+                <h2 className="text-xl font-bold">Modo Participante 🤶</h2>
+                <p className="text-sm text-gray-600 mt-1">Escribe tu nombre exactamente como fue ingresado.</p>
+                <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                  <input value={myName} onChange={e=>setMyName(e.target.value)} className="flex-1 p-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Tu nombre..." />
+                  <button onClick={lookup} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow">✨ Ver a quién me tocó</button>
+                </div>
+                {mine && (
+                  <div className="mt-4 rounded-2xl border border-emerald-200 p-4 bg-emerald-50 text-emerald-900">
+                    <p className="text-sm">Para: <span className="font-semibold">{myName}</span></p>
+                    <p className="mt-1 text-2xl font-extrabold">🎉 ¡Te tocó: {mine}!</p>
+                    <p className="text-xs text-emerald-700 mt-2">Tip: guarda captura de pantalla.</p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            <footer className="text-center text-xs text-white/80 mt-8">Hecho con ❤️ por Pepee!nk — ¡Felices Fiestas! 🎊</footer>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+    </script>
+  </body>
+</html>
